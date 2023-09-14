@@ -2,6 +2,8 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import torch
+import torch.nn.functional as F
 
 # plot functions
 def plot_lines(data_dict, y_name, save_path=None, method_names=None):
@@ -87,3 +89,28 @@ def find_two_sentences(data, split_str1=".", split_str2=",", larger_than1=2, lar
                 sentences.append(d.split(split_str2)[0]+f"{split_str2}")
                 idxs.append(i)
     return idxs, sentences
+
+def batchify(lst, batch_size):
+    """Yield successive batch_size chunks from lst."""
+    for i in range(0, len(lst), batch_size):
+        yield lst[i:i + batch_size]
+
+def get_logprobs(logits, input_ids, masks, **kwargs):
+    logprobs = F.log_softmax(logits, dim=-1)[:, :-1]
+    # find the logprob of the input ids that actually come next in the sentence
+    logprobs = torch.gather(logprobs, -1, input_ids[:, 1:, None])
+    logprobs = logprobs * masks[:, 1:, None] 
+    return logprobs.squeeze(-1)
+
+def get_logits(tokenizer, model, prompt, device):
+    inputs = tokenizer(prompt, return_tensors="pt", padding=True, max_length=512, truncation=True)
+    input_ids = inputs.input_ids.to(device)
+    attention_mask = inputs.attention_mask.to(device)
+    output = model(input_ids, attention_mask=attention_mask).logits
+
+    return output, attention_mask, input_ids
+
+def load_generations(file_name):
+    with open(file_name, "r") as f:
+        generations = [line.strip() for line in f]
+    return generations
