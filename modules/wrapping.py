@@ -29,7 +29,6 @@ class WrappedBlock(torch.nn.Module):
 
             
         if self.to_add is not None:
-
             norm_pre = torch.norm(modified, dim=-1, keepdim=True)
             # print(f'modified shape: {modified.shape}')
             # print(f'to_add shape: {self.to_add.shape}')
@@ -44,9 +43,9 @@ class WrappedBlock(torch.nn.Module):
             elif "position_ids" in kwargs:
                 pos = kwargs["position_ids"]
                 zero_indices = (pos == 0).cumsum(1).argmax(1, keepdim=True)
-                col_indices = torch.arange(pos.size(1), device=pos.device).unsqueeze(0)
+                col_indices = torch.arange(pos.size(1)).unsqueeze(0).to(device=pos.device, dtype=pos.dtype)
                 target_shape = modified.shape
-                mask = (col_indices >= zero_indices).float().reshape(target_shape[0], target_shape[1], 1)
+                mask = (col_indices >= zero_indices).reshape(target_shape[0], target_shape[1], 1)
             else:
                 # print(f"Warning: block {self.block_name} does not contain information 'position_ids' about token types. When using batches this can lead to unexpected results.")
                 mask = 1.0
@@ -80,6 +79,7 @@ class WrappedBlock(torch.nn.Module):
             output = (modified,) + output[1:] 
         else:
             output = modified
+
         return output
 
     def set_to_add(self, activations, token_pos=None, masks=None, normalize=False):
@@ -100,8 +100,8 @@ class WrappedBlock(torch.nn.Module):
 class WrappedModel(torch.nn.Module):
     def __init__(self, model, tokenizer):
         super().__init__()
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = model.to(self.device)
+        self.model = model
+        self.device = model.device
         self.tokenizer = tokenizer
 
     def forward(self, *args, **kwargs):
