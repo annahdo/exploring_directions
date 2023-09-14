@@ -4,6 +4,12 @@ import pandas as pd
 import numpy as np
 import torch
 import torch.nn.functional as F
+import os
+
+def make_dir(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
 # plot functions
 def plot_lines(data_dict, y_name, save_path=None, method_names=None):
@@ -30,33 +36,6 @@ def plot_lines(data_dict, y_name, save_path=None, method_names=None):
     if save_path:
         plt.savefig(save_path)
 
-    plt.show()
-
-def plot_bars(data_dict, y_name, save_path=None):
-    data_list = []
-
-    for method, layers in data_dict.items():
-        for layer, value in layers.items():
-            data_list.append({'Method': method, 'Layer': layer, y_name: value})
-
-    df = pd.DataFrame(data_list)
-
-    # Initialize the figure
-    plt.figure(figsize=(8, 5))
-
-    # Create a barplot for median
-    #sns.barplot(x='Method', y='Accuracy', data=df, estimator=np.median, ci=None, color='grey', alpha=0.6, label='Median')
-
-    # Create a boxplot for quartiles etc.
-    sns.barplot(x='Method', y=y_name, width=0.3, data=df)
-    # Labels and title
-    plt.xlabel('Method')
-    plt.ylabel(y_name)
-    plt.grid(linestyle='-', linewidth=0.7, alpha=0.7)    
-    plt.xticks(rotation=45)
-
-    if save_path:
-        plt.savefig(save_path)
     plt.show()
 
 def load_util_data(data_dir, split="test"):
