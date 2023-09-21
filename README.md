@@ -1,4 +1,4 @@
-# Exploring directions in hidden layer of LLMs
+# Exploring directions in hidden layers of LLMs
 
 We find concept directions in hidden layers of an LLM an use them for classification, activation steering and knowledge removal. 
 
