@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import torch
 import torch.nn.functional as F
+from scipy.special import softmax
 import os
 
 def make_dir(path):
@@ -12,7 +13,7 @@ def make_dir(path):
     return path
 
 # plot functions
-def plot_lines(data_dict, y_name, save_path=None, method_names=None):
+def plot_lines(data_dict, y_name, save_path=None, method_names=None, loc='upper left'):
     # plot
     data_list = [{'Method': method, 'Layer': layer, y_name: value} 
                 for method, layers in data_dict.items() 
@@ -32,7 +33,7 @@ def plot_lines(data_dict, y_name, save_path=None, method_names=None):
     plt.xlabel('Layer')
     plt.ylabel(y_name)
     plt.grid(True)
-    plt.legend(title='Method')
+    plt.legend(title='Method', loc=loc)
     if save_path:
         plt.savefig(save_path)
 
@@ -88,6 +89,38 @@ def get_logits(tokenizer, model, prompt, device):
     output = model(input_ids, attention_mask=attention_mask).logits
 
     return output, attention_mask, input_ids
+
+def eval_perplexity(sentences, batch_size, tokenizer, wrapped_model, device):
+    perplexities = []
+    for sentence_batch in batchify(sentences, batch_size):
+        logits, attention_mask, input_ids = get_logits(tokenizer, wrapped_model, sentence_batch, device)
+        p = get_logprobs(logits, input_ids, attention_mask)
+        perplexities.extend(list(torch.exp(-p.mean(dim=-1)).detach().cpu().float().numpy()))
+
+    return np.mean(perplexities)
+
+def eval_sentiment(generations, batch_size, tokenizer, sentiment_model, device):
+        outputs = {"positive": [], "negative": []}
+        # eval
+        for sentence_batch in batchify(generations["positive"], batch_size):
+            logits, _, _ = get_logits(tokenizer, sentiment_model, sentence_batch, device)
+            output = softmax(logits.detach().float().cpu().numpy(), axis=-1)
+            outputs["positive"].append(output)
+
+        outputs["positive"] = np.concatenate(outputs["positive"], axis=0)
+
+        for sentence_batch in batchify(generations["negative"], batch_size):
+            logits, _, _ = get_logits(tokenizer, sentiment_model, sentence_batch, device)
+            output = softmax(logits.detach().float().cpu().numpy(), axis=-1)
+            outputs["negative"].append(output)
+
+        outputs["negative"] = np.concatenate(outputs["negative"], axis=0)
+
+        # output has three values per sample: negative, neutral, positive
+        # calculate accuracy
+        pos_bigger = (outputs["positive"][:,-1]>outputs["negative"][:,-1])
+
+        return np.mean(pos_bigger)
 
 def load_generations(file_name):
     with open(file_name, "r") as f:
