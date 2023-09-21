@@ -1,6 +1,6 @@
 # Exploring directions in hidden layer of LLMs
 
-We find concept directions in hidden layers of an LLM an use them for classification, activation steering and knowledge removal.
+We find concept directions in hidden layers of an LLM an use them for classification, activation steering and knowledge removal. 
 
 ### Install
 You need python 10 to run the removal code. You also need a huggingface [access token](https://huggingface.co/docs/hub/security-tokens) to use the models.
@@ -42,16 +42,14 @@ Use the `extraction_classification_removal` notebook to find directions in hidde
 
 We check the cosine similarity between these directions.
 
-<img src="plots/utility_cossine_Llama-2-7b-chat-hf_selection.png" width="500">
+<img src="plots/cos_similarity_Llama-2-7b-chat-hf_layer_15.png" width="500">
 
 ## Classification
 
 We use the directions found with different methods to classify encoded differences of contrastive test sample pairs.
 We observe that the data is well separable in middle to later layers.
 
-<img src="plots/baselines_utility_Llama-2-7b-chat-hf.png">
-
-## Removal
+<img src="plots/separation_accs_Llama-2-7b-chat-hf.png">
 
 ## Steering
 
@@ -59,13 +57,23 @@ Use the `activation_steering` notebook to use the previously found directions fo
 We use the beginnings of 500 samples from the utility test data and generate additional tokens while steering the model in the positive or negative utility direction respectively.
 
 We then quantitatively evaluate the generated text. 
-To check how coherent the text is we calculate the sum of the log likelihoods of the generated words using the non steered model.
+To check how coherent the text is we calculate the perplexity of the generated words using the non steered model.
 Activation addition in layer 0 leads to non sensical generations.
 
-<img src="plots/probs_Llama-2-7b-chat-hf.png">
+<img src="plots/perplexity_Llama-2-7b-chat-hf.png">
 
 We use a model trained for sentiment analysis to check if positively steered text is indeed more positive than negatively steered text and report the accuracy.
 
 <img src="plots/sentiment_accs_Llama-2-7b-chat-hf.png">
+
+## Removal
+
+To remove a concept we project the hidden representations in layer l onto the hyperplane that is perpendicular to the concept vector of that layer. 
+To check if the removal was successful (aka, if no more information about utility can be extracted from the projected data) we train a classifier on the projected training set and test it on the training and test data respectively. We thus get an upper and lower bound of how much information can be retrieved post projection.
+
+<img src="plots/removal_train_accs_Llama-2-7b-chat-hf.png">
+<img src="plots/removal_test_accs_Llama-2-7b-chat-hf.png">
+
+
 
 
