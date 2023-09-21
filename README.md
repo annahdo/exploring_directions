@@ -40,7 +40,7 @@ Use the `extraction_classification_removal` notebook to find directions in hidde
 * `LogReg`: Logistic regression on contrastive sentence pairs
 * `Random`: Random drawn samples from Gaussian distribution as a baseline
 
-We check the cosine similarity between these directions.
+We check the cosine similarity between these directions (for layer 15).
 
 <img src="plots/cos_similarity_Llama-2-7b-chat-hf_layer_15.png" width="500">
 
