@@ -1,4 +1,5 @@
 ipykernel
+jupyter
 concept-erasure
 numpy
 scikit-learn
@@ -7,3 +8,4 @@ pandas
 seaborn
 transformers
 accelerate
+matplotlib==3.7
