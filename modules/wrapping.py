@@ -16,6 +16,7 @@ class WrappedBlock(torch.nn.Module):
         self.mask = None
         self.token_pos = None
         self.normalize = False
+        self.leace_eraser = None
 
     def forward(self, *args, **kwargs):
         output = self.block(*args, **kwargs)
@@ -27,28 +28,36 @@ class WrappedBlock(torch.nn.Module):
             self.output = output
             modified = output
 
+        if self.mask is not None:
+            mask = self.mask
+
+        # we should ignore the padding tokens when doing the activation addition
+        # mask has ones for non padding tokens and zeros at padding tokens.
+        # I only tested this on left padding
+        elif "position_ids" in kwargs:
+            pos = kwargs["position_ids"]
+            zero_indices = (pos == 0).cumsum(1).argmax(1, keepdim=True)
+            col_indices = torch.arange(pos.size(1)).unsqueeze(0).to(device=pos.device, dtype=pos.dtype)
+            target_shape = modified.shape
+            mask = (col_indices >= zero_indices).reshape(target_shape[0], target_shape[1], 1)
+        else:
+            # print(f"Warning: block {self.block_name} does not contain information 'position_ids' about token types. When using batches this can lead to unexpected results.")
+            mask = 1.0
+
+        if self.leace_eraser is not None:
+            device = modified.device
+            dtype = modified.dtype
+            bias = self.leace_eraser.bias.to(device=device, dtype=dtype) if self.leace_eraser.bias is not None else 0
+            delta = modified - bias * mask
+
+            # Ensure we do the matmul in the most efficient order.
+            modified = modified - ((delta @ self.leace_eraser.proj_right.mH.to(device=device, dtype=dtype)) @ self.leace_eraser.proj_left.mH.to(device=device, dtype=dtype))*mask
             
         if self.to_add is not None:
             norm_pre = torch.norm(modified, dim=-1, keepdim=True)
             # print(f'modified shape: {modified.shape}')
             # print(f'to_add shape: {self.to_add.shape}')
             # print(f'self.mask: {self.mask}')
-
-            if self.mask is not None:
-                mask = self.mask
-
-            # we should ignore the padding tokens when doing the activation addition
-            # mask has ones for non padding tokens and zeros at padding tokens.
-            # I only tested this on left padding
-            elif "position_ids" in kwargs:
-                pos = kwargs["position_ids"]
-                zero_indices = (pos == 0).cumsum(1).argmax(1, keepdim=True)
-                col_indices = torch.arange(pos.size(1)).unsqueeze(0).to(device=pos.device, dtype=pos.dtype)
-                target_shape = modified.shape
-                mask = (col_indices >= zero_indices).reshape(target_shape[0], target_shape[1], 1)
-            else:
-                # print(f"Warning: block {self.block_name} does not contain information 'position_ids' about token types. When using batches this can lead to unexpected results.")
-                mask = 1.0
 
             if len(self.to_add.shape) == 1:
                 self.to_add = self.to_add.reshape(1, 1, -1)
@@ -92,9 +101,15 @@ class WrappedBlock(torch.nn.Module):
         self.output = None
         self.to_add = None
         self.mask = None
+        self.token_pos = None
+        self.normalize = False
+        self.leace_eraser = None
 
     def set_masks(self, masks):
         self.mask = masks
+
+    def set_leace_eraser(self, leace_eraser):
+        self.leace_eraser = leace_eraser
 
     
 class WrappedModel(torch.nn.Module):
