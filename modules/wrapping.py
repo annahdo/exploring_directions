@@ -28,21 +28,22 @@ class WrappedBlock(torch.nn.Module):
             self.output = output
             modified = output
 
-        if self.mask is not None:
-            mask = self.mask
+        if self.leace_eraser is not None or self.to_add is not None:
+            if self.mask is not None:
+                mask = self.mask
 
-        # we should ignore the padding tokens when doing the activation addition
-        # mask has ones for non padding tokens and zeros at padding tokens.
-        # I only tested this on left padding
-        elif "position_ids" in kwargs:
-            pos = kwargs["position_ids"]
-            zero_indices = (pos == 0).cumsum(1).argmax(1, keepdim=True)
-            col_indices = torch.arange(pos.size(1)).unsqueeze(0).to(device=pos.device, dtype=pos.dtype)
-            target_shape = modified.shape
-            mask = (col_indices >= zero_indices).reshape(target_shape[0], target_shape[1], 1)
-        else:
-            # print(f"Warning: block {self.block_name} does not contain information 'position_ids' about token types. When using batches this can lead to unexpected results.")
-            mask = 1.0
+            # we should ignore the padding tokens when doing the activation addition
+            # mask has ones for non padding tokens and zeros at padding tokens.
+            # I only tested this on left padding
+            elif "position_ids" in kwargs:
+                pos = kwargs["position_ids"]
+                zero_indices = (pos == 0).cumsum(1).argmax(1, keepdim=True)
+                col_indices = torch.arange(pos.size(1)).unsqueeze(0).to(device=pos.device, dtype=pos.dtype)
+                target_shape = modified.shape
+                mask = (col_indices >= zero_indices).reshape(target_shape[0], target_shape[1], 1)
+            else:
+                # print(f"Warning: block {self.block_name} does not contain information 'position_ids' about token types. When using batches this can lead to unexpected results.")
+                mask = 1.0
 
         if self.leace_eraser is not None:
             device = modified.device
