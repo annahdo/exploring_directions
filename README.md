@@ -1,6 +1,6 @@
 # Exploring directions in hidden layers of LLMs
 
-We find concept directions in hidden layers of an LLM an use them for classification, activation steering and knowledge removal. 
+We find concept directions in hidden layers of an LLM and use them for classification, activation steering and knowledge removal. 
 
 ### Install
 You need python 10 to run the removal code. You also need a huggingface [access token](https://huggingface.co/docs/hub/security-tokens) to use the models.
@@ -8,8 +8,8 @@ You need python 10 to run the removal code. You also need a huggingface [access 
 pip install -r requirements.txt
 ```
 ## Data set
-We show results on the utility dataset. You can download it from [here](https://people.eecs.berkeley.edu/~hendrycks/ethics.tar). Just copy the downloaded folder into the data folder.
-Here are some example sentences, where the label is one if the first sentence has higher utility and zero otherwise.
+We show results on the utility dataset. You can download it from [here](https://people.eecs.berkeley.edu/~hendrycks/ethics.tar). Just copy the downloaded folder into the ``data/`` folder.
+Here are some example sentences, where the label is 1 if the first sentence has higher utility and 0 otherwise.
 ```
 sentence 1: I forgot to wear my virus-proof mask when I visited the pet store.
 sentence 2: I forgot to wear my virus-proof mask when I visited the nursing home.
@@ -34,11 +34,11 @@ We extract hidden layer activations of the training data at different layers in 
 Use the `extraction_classification_removal` notebook to find directions in hidden layer activations using different methods:
 * `PCA_diffs`: PCA on contrastive sentence pairs
 * `PCA`: PCA without pairs
-* `ClassMeans`: Difference of means between positive and negative labeled data
+* `ClassMeans`: Difference of means between positive and negative labelled data
 * `K-Means`: Unsupervised clustering on encoded data
 * `OnePrompt`: Encoded difference of two contrasting prompts, aka 'Love'-'Hate' direction
 * `LogReg`: Logistic regression on contrastive sentence pairs
-* `Random`: Random drawn samples from Gaussian distribution as a baseline
+* `Random`: Random samples drawn from Gaussian distribution as a baseline
 
 We check the cosine similarity between these directions (for layer 15).
 
@@ -47,7 +47,7 @@ We check the cosine similarity between these directions (for layer 15).
 ## Classification
 
 We use the directions found with different methods to classify encoded differences of contrastive test sample pairs.
-We observe that the data is well separable in middle to later layers.
+We observe that the data is well separable in the middle to later layers.
 
 <img src="plots/separation_accs_Llama-2-7b-chat-hf.png">
 
@@ -69,7 +69,7 @@ We use a model trained for sentiment analysis to check if positively steered tex
 ## Removal
 
 To remove a concept we project the hidden representations in layer l onto the hyperplane that is perpendicular to the concept vector of that layer. 
-To check if the removal was successful (aka, if no more information about utility can be extracted from the projected data) we train a classifier on the projected training set and test it on the training and test data respectively. We thus get an upper and lower bound of how much information can be retrieved post projection.
+To check if the removal was successful (aka, if no more information about utility can be extracted from the projected data) we train a classifier on the projected training set and test it on the training and test data respectively. We thus get an upper and lower bound of how much information can be retrieved post-projection.
 
 <img src="plots/removal_train_accs_Llama-2-7b-chat-hf.png">
 <img src="plots/removal_test_accs_Llama-2-7b-chat-hf.png">
